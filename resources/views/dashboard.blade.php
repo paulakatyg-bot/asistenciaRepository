@@ -1,17 +1,50 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Dashboard') }}
-        </h2>
-    </x-slot>
+@extends('adminlte::page')
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    {{ __("You're logged in!") }}
-                </div>
-            </div>
+@section('title', 'Panel Institucional')
+
+@section('content_header')
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="m-0 text-dark">
+                Gobierno Autónomo Municipal de Porco
+            </h1>
+            <small class="text-muted">
+                Sistema de Control de Asistencia
+            </small>
+        </div>
+
+        <div>
+            <span class="badge badge-success">
+                Usuario: {{ auth()->user()->name ?? 'Administrador' }}
+            </span>
         </div>
     </div>
-</x-app-layout>
+@stop
+
+@section('content')
+
+
+
+{{-- Card institucional --}}
+<div class="card card-outline card-primary">
+    <div class="card-header">
+        <h3 class="card-title">
+            Bienvenido al Sistema
+        </h3>
+    </div>
+    <div class="card-body">
+        <p>
+            Este sistema permite gestionar el control de asistencia del personal
+            del <strong>Gobierno Autónomo Municipal de Porco</strong>,
+            incluyendo horarios administrativos, turnos, feriados,
+            excepciones y reportes institucionales.
+        </p>
+
+        <p>
+            Fecha actual:
+            <strong>{{ now()->format('d/m/Y') }}</strong>
+        </p>
+    </div>
+</div>
+
+@stop
