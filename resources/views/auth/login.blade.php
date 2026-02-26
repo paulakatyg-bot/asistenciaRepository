@@ -1,9 +1,12 @@
 @extends('adminlte::auth.login')
 
-@section('auth_header', 'Iniciar Sesión')
+{{-- Cambia el título de la pestaña del navegador --}}
+@section('title', 'asistencia_gam')
+
+{{-- Cambia el título que aparece sobre el cuadro de login --}}
+@section('auth_header', 'asistencia_gam')
 
 @section('auth_body')
-
 <form method="POST" action="{{ route('login') }}">
     @csrf
 
@@ -11,7 +14,7 @@
     <div class="input-group mb-3">
         <input type="email"
                name="email"
-               class="form-control"
+               class="form-control @error('email') is-invalid @enderror"
                placeholder="Correo electrónico"
                value="{{ old('email') }}"
                required autofocus>
@@ -21,18 +24,19 @@
                 <span class="fas fa-envelope"></span>
             </div>
         </div>
+        
+        @error('email')
+            <span class="invalid-feedback" role="alert">
+                <strong>{{ $message }}</strong>
+            </span>
+        @enderror
     </div>
-
-    @error('email')
-        <span class="text-danger text-sm">{{ $message }}</span>
-    @enderror
-
 
     {{-- Password --}}
     <div class="input-group mb-3">
         <input type="password"
                name="password"
-               class="form-control"
+               class="form-control @error('password') is-invalid @enderror"
                placeholder="Contraseña"
                required>
 
@@ -41,18 +45,19 @@
                 <span class="fas fa-lock"></span>
             </div>
         </div>
+
+        @error('password')
+            <span class="invalid-feedback" role="alert">
+                <strong>{{ $message }}</strong>
+            </span>
+        @enderror
     </div>
 
-    @error('password')
-        <span class="text-danger text-sm">{{ $message }}</span>
-    @enderror
-
-
-    {{-- Remember --}}
+    {{-- Botón Ingresar y Recordarme --}}
     <div class="row">
         <div class="col-8">
             <div class="icheck-primary">
-                <input type="checkbox" id="remember" name="remember">
+                <input type="checkbox" id="remember" name="remember" {{ old('remember') ? 'checked' : '' }}>
                 <label for="remember">
                     Recordarme
                 </label>
@@ -65,17 +70,12 @@
             </button>
         </div>
     </div>
-
 </form>
-
 @stop
 
+{{-- 
+    Dejamos esta sección vacía para eliminar el enlace de 
+    "¿Olvidaste tu contraseña?" que AdminLTE pone por defecto 
+--}}
 @section('auth_footer')
-    @if (Route::has('password.request'))
-        <p class="mb-1">
-            <a href="{{ route('password.request') }}">
-                ¿Olvidaste tu contraseña?
-            </a>
-        </p>
-    @endif
 @stop
