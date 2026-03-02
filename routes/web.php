@@ -11,6 +11,8 @@ use App\Http\Controllers\AsignacionHorarioController;
 use App\Http\Controllers\ExcepcionEmpleadoController;
 use App\Http\Controllers\MarcacionCrudaController;
 use App\Http\Controllers\ProcesarAsistenciaController;
+use App\Http\Controllers\CalendarioController;
+use App\Http\Controllers\TipoTickeoController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -121,6 +123,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+Route::prefix('configuracion')->group(function () {
+    Route::get('/calendario', [CalendarioController::class, 'index'])->name('calendario.index');
+    Route::post('/calendario', [CalendarioController::class, 'store'])->name('calendario.store');
+    Route::put('/calendario/{fecha}', [CalendarioController::class, 'update'])->name('calendario.update');
+    Route::delete('/calendario/{fecha}', [CalendarioController::class, 'destroy'])->name('calendario.destroy');
+
+    Route::get('/tipo-tickeos', [TipoTickeoController::class, 'index'])->name('tipo_tickeos.index');
+    Route::post('/tipo-tickeos', [TipoTickeoController::class, 'store'])->name('tipo_tickeos.store');
+    Route::put('/tipo-tickeos/{id}', [TipoTickeoController::class, 'update'])->name('tipo_tickeos.update');
+    Route::delete('/tipo-tickeos/{id}', [TipoTickeoController::class, 'destroy'])->name('tipo_tickeos.destroy');
 });
 
 require __DIR__.'/auth.php';

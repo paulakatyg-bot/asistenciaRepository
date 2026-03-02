@@ -300,46 +300,64 @@ return [
 
     'menu' => [
         // Navbar items:
+        ['header' => 'GESTIÓN DE ASISTENCIA'],
         [
-        'text' => 'Importar Marcaciones',
-        'url'  => '/marcaciones/importar',
-        'icon' => 'fas fa-fw fa-upload',
+            'text' => 'Asistencias',
+            'url'  => 'asistencias',
+            'icon' => 'fas fa-fw fa-clipboard-check', // Icono más dinámico
         ],
         [
+            'text' => 'Importar Marcaciones',
+            'url'  => 'marcaciones/importar',
+            'icon' => 'fas fa-fw fa-upload',
+        ],
+
+        /* --- SECCIÓN: PERSONAL Y ASIGNACIONES --- */
+        ['header' => 'RECURSOS HUMANOS'],
+        [
             'text' => 'Empleados',
-            'url'  => '/empleados',
+            'url'  => 'empleados',
             'icon' => 'fas fa-fw fa-users',
         ],
         [
+            'text' => 'Asignación de Horarios',
+            'url'  => 'asignacion_horarios',
+            'icon' => 'fas fa-fw fa-user-clock',
+        ],
+        [
+            'text' => 'Excepciones de Empleados',
+            'url'  => 'excepcion_empleados',
+            'icon' => 'fas fa-fw fa-user-tag',
+        ],
+        [
+            'text' => 'Grupo de Beneficios',
+            'url'  => 'grupo_beneficios',
+            'icon' => 'fas fa-fw fa-gift',
+        ],
+
+        /* --- SECCIÓN: CONFIGURACIÓN ESTRUCTURAL --- */
+        ['header' => 'CONFIGURACIÓN DE TIEMPOS'],
+        [
+            'text' => 'Calendario Laboral Feriados y otros', // Corregido el texto
+            'url'  => 'configuracion/calendario',         // Corregido a la ruta que definimos
+            'icon' => 'fas fa-fw fa-calendar-alt',
+        ],
+        [
             'text' => 'Horarios',
-            'url'  => '/horarios',
+            'url'  => 'horarios',
             'icon' => 'fas fa-fw fa-clock',
         ],
         [
             'text' => 'Turnos de Horario',
-            'url'  => '/horario_turnos',
-            'icon' => 'fas fa-fw fa-calendar-alt',
+            'url'  => 'horario_turnos',
+            'icon' => 'fas fa-fw fa-list-ol',
         ],
         [
-            'text' => 'Grupo de Beneficios',
-            'url'  => '/grupo_beneficios',
-            'icon' => 'fas fa-fw fa-gift',
+            'text' => 'Tipos de Tickeo',
+            'url'  => 'configuracion/tipo-tickeos', // O usar 'route' => 'tipo_tickeos.index'
+            'icon' => 'fas fa-fw fa-tags',
         ],
-        [
-            'text' => 'Excepciones de Empleados',
-            'url'  => '/excepcion_empleados',
-            'icon' => 'fas fa-fw fa-exclamation-circle',
-        ],
-        [
-            'text' => 'Asistencias',
-            'url'  => '/asistencias',
-            'icon' => 'fas fa-fw fa-clipboard-list',
-        ],
-        [
-            'text' => 'Asignación de Horarios',
-            'url'  => '/asignacion_horarios',
-            'icon' => 'fas fa-fw fa-user-clock',
-        ]
+        
     ],
 
     /*

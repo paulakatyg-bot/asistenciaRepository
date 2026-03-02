@@ -16,26 +16,27 @@
 
 @section('content')
 
-{{-- RESUMEN DE ATRASOS (Aparece cuando se filtra por empleado) --}}
-@if(request('empleado_id') && $asistencias->count() > 0)
-<div class="row">
-    <div class="col-md-3">
-        <div class="small-box bg-danger shadow-sm">
-            <div class="inner">
-                <h3>{{ $asistencias->sum('minutos_tarde') }} <sup style="font-size: 20px">min</sup></h3>
-                <p>Total Minutos de Atraso</p>
-            </div>
-            <div class="icon">
-                <i class="fas fa-clock"></i>
-            </div>
-        </div>
+{{-- RESUMEN DE ATRASOS --}}
+@if(request('empleado_id') && $asistenciasReales->count() > 0)
+    @php
+        $totalAtraso = $asistenciasReales->flatten()->sum('minutos_tarde');
+    @endphp
+    <div class="alert alert-info shadow-sm">
+        <i class="fas fa-info-circle mr-2"></i> Reporte para el empleado seleccionado. 
+        <strong>Total atrasos en el periodo: {{ $totalAtraso }} min.</strong>
     </div>
-</div>
 @endif
 
 @if(session('success'))
 <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
     <i class="fas fa-check-circle mr-2"></i> {{ session('success') }}
+    <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+</div>
+@endif
+
+@if(session('error'))
+<div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+    <i class="fas fa-exclamation-triangle mr-2"></i> {{ session('error') }}
     <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
 </div>
 @endif
@@ -56,8 +57,10 @@
                     <i class="fas fa-history mr-1"></i> Reprocesar por Rango
                 </button>
                 
-                <div class="ml-auto text-muted text-sm">
-                    <i class="fas fa-info-circle mr-1"></i> Los registros manuales requieren observación.
+                <div class="ml-auto text-muted text-sm d-none d-md-block">
+                    <span class="mr-3"><i class="fas fa-stop text-danger-soft border"></i> Feriado</span>
+                    <span class="mr-3"><i class="fas fa-stop text-warning-soft border"></i> Especial</span>
+                    <i class="fas fa-info-circle mr-1"></i> Registros manuales requieren observación.
                 </div>
             </div>
         </div>
@@ -74,11 +77,11 @@
             <div class="row">
                 <div class="col-md-3 form-group">
                     <label class="text-xs text-uppercase font-weight-bold">Desde</label>
-                    <input type="date" name="fecha_desde" value="{{ request('fecha_desde') }}" class="form-control form-control-sm border-info">
+                    <input type="date" name="fecha_desde" value="{{ request('fecha_desde', $fecha_desde->format('Y-m-d')) }}" class="form-control form-control-sm border-info">
                 </div>
                 <div class="col-md-3 form-group">
                     <label class="text-xs text-uppercase font-weight-bold">Hasta</label>
-                    <input type="date" name="fecha_hasta" value="{{ request('fecha_hasta') }}" class="form-control form-control-sm border-info">
+                    <input type="date" name="fecha_hasta" value="{{ request('fecha_hasta', $fecha_hasta->format('Y-m-d')) }}" class="form-control form-control-sm border-info">
                 </div>
                 <div class="col-md-4 form-group">
                     <label class="text-xs text-uppercase font-weight-bold">Empleado</label>
@@ -91,16 +94,12 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-2 d-flex align-items-end gap-2 form-group">
-                    <!-- Botón Filtrar -->
-                    <button type="submit" class="btn btn-info btn-block btn-sm shadow-sm font-weight-bold">
-                        <i class="fas fa-filter mr-1"></i> Filtrar
+                <div class="col-md-2 d-flex align-items-end form-group" style="gap: 5px;">
+                    <button type="submit" class="btn btn-info btn-sm shadow-sm font-weight-bold flex-grow-1">
+                        <i class="fas fa-filter"></i>
                     </button>
-
-                    <!-- Botón Exportar PDF -->
-                    <a href="{{ route('asistencias.pdf', request()->all()) }}" 
-                    class="btn btn-danger btn-sm shadow-sm font-weight-bold d-flex align-items-center">
-                        <i class="fas fa-file-pdf mr-1"></i> Exportar a PDF
+                    <a href="{{ route('asistencias.pdf', request()->all()) }}" class="btn btn-danger btn-sm shadow-sm font-weight-bold flex-grow-1">
+                        <i class="fas fa-file-pdf"></i>
                     </a>
                 </div>
             </div>
@@ -110,6 +109,13 @@
 
 {{-- TABLA DE RESULTADOS --}}
 <div class="card card-primary card-outline shadow-lg">
+    <div class="card-header border-0">
+        <h3 class="card-title">
+            <i class="fas fa-calendar-alt mr-2"></i>
+            Asistencia: <strong>{{ $empleado->nombres ?? 'Seleccione Empleado' }} {{ $empleado->apellidos ?? '' }}</strong>
+        </h3>
+    </div>
+
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-sm table-hover m-0 text-center">
@@ -118,8 +124,8 @@
                         <th rowspan="2" class="align-middle border-right" style="width: 120px;">Día</th>
                         <th rowspan="2" class="align-middle border-right">Fecha</th>
                         <th rowspan="2" class="align-middle border-right">Empleado</th>
-                        <th colspan="2" class="bg-primary-light py-1 border-right">Turno 1 Real</th>
-                        <th colspan="2" class="bg-primary-light py-1 border-right">Turno 2 Real</th>
+                        <th colspan="2" class="bg-primary-light py-1 border-right text-primary">Turno 1 Real</th>
+                        <th colspan="2" class="bg-primary-light py-1 border-right text-primary">Turno 2 Real</th>
                         <th rowspan="2" class="align-middle border-right">Atraso</th>
                         <th rowspan="2" class="align-middle border-right">Estado / Origen</th>
                         <th rowspan="2" class="align-middle">Acción</th>
@@ -130,92 +136,193 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($asistencias as $a)
-                    @php
-                        // Determinar si es fin de semana para el estilo
-                        $esFinSemana = $a->fecha->isWeekend();
-                        $nombreDia = $a->fecha->translatedFormat('l'); // Requiere Carbon locale 'es'
-                    @endphp
-                    <tr class="{{ $a->tipo_registro == 'MANUAL' ? 'row-manual' : '' }} {{ $esFinSemana ? 'bg-weekend' : '' }}">
-                        {{-- Columna Día --}}
-                        <td class="align-middle border-right text-uppercase font-weight-bold {{ $esFinSemana ? 'text-primary' : 'text-muted' }}" style="font-size: 0.7rem;">
-                            {{ $nombreDia }}
-                        </td>
-                        
-                        {{-- Columna Fecha --}}
-                        <td class="align-middle border-right">
-                            <span class="badge {{ $esFinSemana ? 'badge-primary' : 'badge-light border' }}">
-                                {{ $a->fecha->format('d/m/Y') }}
-                            </span>
-                        </td>
+                    @if($empleado)
+                        @foreach($periodo as $fecha)
+                            @php
+                                $fechaStr = $fecha->format('Y-m-d');
+                                $asistencia = $asistenciasReales[$fechaStr][0] ?? null;
+                                $evento = $eventosCalendario[$fechaStr] ?? null;
+                                
+                                $esFinSemana = $fecha->isWeekend();
+                                $esFeriado = ($evento && $evento->tipo_dia === 'FERIADO');
+                                $esEspecial = ($evento && $evento->tipo_dia === 'ESPECIAL');
 
-                        {{-- Empleado --}}
-                        <td class="text-left align-middle pl-3 border-right">
-                            <span class="d-block font-weight-bold text-truncate" style="max-width: 150px;">
-                                {{ $a->empleado->nombres }} {{ $a->empleado->apellidos }}
-                            </span>
-                        </td>
+                                $asignacion = $empleado->asignacionesHorarios
+                                    ->where('fecha_inicio', '<=', $fechaStr)
+                                    ->filter(function($q) use ($fechaStr) {
+                                        return is_null($q->fecha_fin) || $q->fecha_fin->format('Y-m-d') >= $fechaStr;
+                                    })->first();
 
-                        {{-- Horarios Reales (Se quedan en blanco si son null) --}}
-                        <td class="align-middle font-weight-bold text-blue">{{ $a->entrada_1_real ?? '' }}</td>
-                        <td class="align-middle font-weight-bold border-right text-blue">{{ $a->salida_1_real ?? '' }}</td>
-                        <td class="align-middle font-weight-bold text-blue">{{ $a->entrada_2_real ?? '' }}</td>
-                        <td class="align-middle font-weight-bold border-right text-blue">{{ $a->salida_2_real ?? '' }}</td>
+                                $turnosProgramados = collect();
+                                if ($asignacion && $asignacion->horario) {
+                                    $turnosProgramados = $asignacion->horario->turnos->where('dia_semana', $fecha->dayOfWeekIso);
+                                }
+                                
+                                $tieneTurnoEseDia = $turnosProgramados->count() > 0;
+                                $esFalta = (!$asistencia && $tieneTurnoEseDia && $fecha->isPast() && !$esFeriado);
+                                
+                                $rowClass = '';
+                                if ($esFeriado) $rowClass = 'bg-feriado';
+                                elseif ($esEspecial) $rowClass = 'bg-especial';
+                                elseif ($esFalta) $rowClass = 'bg-light-danger';
+                                elseif ($esFinSemana) $rowClass = 'bg-weekend';
+                            @endphp
 
-                        {{-- Atraso --}}
-                        <td class="align-middle border-right">
-                            @if($a->minutos_tarde > 0)
-                                <span class="badge badge-danger-soft">{{ $a->minutos_tarde }} min</span>
-                            @elseif($a->entrada_1_real)
-                                <span class="text-success"><i class="fas fa-check-circle"></i></span>
-                            @endif
-                        </td>
+                            <tr class="{{ $rowClass }}">
+                                <td class="align-middle border-right text-uppercase font-weight-bold {{ $esFinSemana ? 'text-primary' : 'text-muted' }}" style="font-size: 0.7rem;">
+                                    {{ $fecha->translatedFormat('l') }}
+                                </td>
 
-                        {{-- Estado --}}
-                        <td class="align-middle border-right">
-                            @if($a->estado_dia)
-                                @php 
-                                    $badgeColor = ['TARDE'=>'warning','NORMAL'=>'success','INASISTENCIA'=>'danger','FERIADO'=>'info'][$a->estado_dia] ?? 'secondary'; 
-                                @endphp
-                                <div class="d-flex flex-column align-items-center">
-                                    <span class="badge badge-{{ $badgeColor }} shadow-sm mb-1 px-2" style="font-size: 0.65rem;">{{ $a->estado_dia }}</span>
-                                    <small class="text-xs text-uppercase font-weight-bold {{ $a->tipo_registro == 'MANUAL' ? 'text-orange' : 'text-muted' }}">
-                                        {{ $a->tipo_registro }}
-                                    </small>
-                                </div>
-                            @endif
-                        </td>
+                                <td class="align-middle border-right">
+                                    <span class="badge {{ $esFinSemana ? 'badge-primary' : 'badge-light border' }}">
+                                        {{ $fecha->format('d/m/Y') }}
+                                    </span>
+                                </td>
 
-                        {{-- Acciones --}}
-                        <td class="align-middle">
-                            <button type="button" class="btn btn-outline-primary btn-xs rounded-circle btn-edit" 
-                                data-id="{{ $a->id }}" data-empleado="{{ $a->empleado->nombres }} {{ $a->empleado->apellidos }}"
-                                data-fecha="{{ $a->fecha->format('d/m/Y') }}" data-e1="{{ $a->entrada_1_real }}" 
-                                data-s1="{{ $a->salida_1_real }}" data-e2="{{ $a->entrada_2_real }}" 
-                                data-s2="{{ $a->salida_2_real }}" data-obs="{{ $a->observaciones }}">
-                                <i class="fas fa-pen"></i>
-                            </button>
-                            
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="10" class="py-5 text-muted">No hay registros para este periodo.</td></tr>
-                    @endforelse
+                                <td class="text-left align-middle pl-3 border-right">
+                                    <span class="d-block font-weight-bold text-truncate" style="max-width: 150px;">
+                                        {{ $empleado->nombres }} {{ $empleado->apellidos }}
+                                    </span>
+                                </td>
+
+                                @if($asistencia && $asistencia->estado_dia !== 'FERIADO')
+                                    {{-- ENTRADA 1 --}}
+                                    <td class="align-middle font-weight-bold">
+                                        @if($asistencia->tipo_e1_id)
+                                            <span class="badge badge-info" title="{{ $asistencia->tipoEntrada1->nombre ?? 'Manual' }}">
+                                                <i class="fas fa-user-check mr-1"></i>{{ $asistencia->tipoEntrada1->nombre ?? 'MAN' }}
+                                            </span>
+                                        @else
+                                            {!! $asistencia->entrada_1_real ?: ($asistencia->entrada_1_prog ? '<span class="text-danger">S.T.</span>' : '-') !!}
+                                        @endif
+                                    </td>
+                                    {{-- SALIDA 1 --}}
+                                    <td class="align-middle font-weight-bold border-right">
+                                        @if($asistencia->tipo_s1_id)
+                                            <span class="badge badge-info">
+                                                <i class="fas fa-user-check mr-1"></i>{{ $asistencia->tipoSalida1->nombre ?? 'MAN' }}
+                                            </span>
+                                        @else
+                                            {!! $asistencia->salida_1_real ?: ($asistencia->salida_1_prog ? '<span class="text-danger">S.T.</span>' : '-') !!}
+                                        @endif
+                                    </td>
+                                    {{-- ENTRADA 2 --}}
+                                    <td class="align-middle font-weight-bold">
+                                        @if($asistencia->tipo_e2_id)
+                                            <span class="badge badge-info">
+                                                <i class="fas fa-user-check mr-1"></i>{{ $asistencia->tipoEntrada2->nombre ?? 'MAN' }}
+                                            </span>
+                                        @else
+                                            {!! $asistencia->entrada_2_real ?: ($asistencia->entrada_2_prog ? '<span class="text-danger">S.T.</span>' : '-') !!}
+                                        @endif
+                                    </td>
+                                    {{-- SALIDA 2 --}}
+                                    <td class="align-middle font-weight-bold border-right">
+                                        @if($asistencia->tipo_s2_id)
+                                            <span class="badge badge-info">
+                                                <i class="fas fa-user-check mr-1"></i>{{ $asistencia->tipoSalida2->nombre ?? 'MAN' }}
+                                            </span>
+                                        @else
+                                            {!! $asistencia->salida_2_real ?: ($asistencia->salida_2_prog ? '<span class="text-danger">S.T.</span>' : '-') !!}
+                                        @endif
+                                    </td>
+                                    <td class="align-middle border-right">
+                                        @if($asistencia->minutos_tarde > 0)
+                                            <span class="badge badge-danger-soft text-danger">{{ $asistencia->minutos_tarde }} min</span>
+                                        @else
+                                            <span class="text-success"><i class="fas fa-check-circle"></i></span>
+                                        @endif
+                                    </td>
+                                    <td class="align-middle border-right">
+                                        <span class="badge {{ $asistencia->estado_dia == 'TARDE' ? 'badge-warning' : ($asistencia->estado_dia == 'INASISTENCIA' ? 'badge-danger' : 'badge-success') }} shadow-sm px-2" style="font-size: 0.65rem;">
+                                            {{ $asistencia->estado_dia }} / {{ $asistencia->tipo_registro }}
+                                        </span>
+                                    </td>
+                                @elseif($esFeriado)
+                                    <td colspan="4" class="align-middle text-danger font-weight-bold">
+                                        <i class="fas fa-flag mr-1"></i> {{ $evento->descripcion }}
+                                    </td>
+                                    <td class="align-middle border-right">0</td>
+                                    <td class="align-middle border-right">
+                                        <span class="badge badge-danger px-2">FERIADO</span>
+                                    </td>
+                                @else
+                                    @if($tieneTurnoEseDia)
+                                        <td class="align-middle font-weight-bold"><span class="text-danger">SIN TICKEO</span></td>
+                                        <td class="align-middle font-weight-bold border-right"><span class="text-danger">SIN TICKEO</span></td>
+                                        <td class="align-middle font-weight-bold"><span class="text-danger">SIN TICKEO</span></td>
+                                        <td class="align-middle font-weight-bold border-right"><span class="text-danger">SIN TICKEO</span></td>
+                                        <td class="align-middle border-right">--</td>
+                                        <td class="align-middle border-right"><span class="badge badge-danger">FALTA</span></td>
+                                    @else
+                                        <td colspan="4" class="align-middle text-muted small italic">
+                                            {{ $esEspecial ? 'Especial: '.$evento->descripcion : 'Día no laboral / Libre' }}
+                                        </td>
+                                        <td class="align-middle border-right">--</td>
+                                        <td class="align-middle border-right">
+                                            <span class="badge {{ $esEspecial ? 'badge-warning' : 'badge-secondary' }}">
+                                                {{ $esEspecial ? 'ESPECIAL' : 'LIBRE' }}
+                                            </span>
+                                        </td>
+                                    @endif
+                                @endif
+
+                                <td class="align-middle">
+                                    @if($tieneTurnoEseDia && !$esFeriado)
+                                        @if($asistencia)
+                                            <button type="button" class="btn btn-outline-primary btn-xs rounded-circle btn-edit" 
+                                                data-id="{{ $asistencia->id }}"
+                                                data-empleado="{{ $empleado->nombres }} {{ $empleado->apellidos }}"
+                                                data-fecha="{{ $fecha->format('d/m/Y') }}"
+                                                data-e1="{{ $asistencia->entrada_1_real }}"
+                                                data-s1="{{ $asistencia->salida_1_real }}"
+                                                data-e2="{{ $asistencia->entrada_2_real }}"
+                                                data-s2="{{ $asistencia->salida_2_real }}"
+                                                data-te1="{{ $asistencia->tipo_e1_id }}"
+                                                data-ts1="{{ $asistencia->tipo_s1_id }}"
+                                                data-te2="{{ $asistencia->tipo_e2_id }}"
+                                                data-ts2="{{ $asistencia->tipo_s2_id }}"
+                                                data-obs="{{ $asistencia->observaciones }}">
+                                                <i class="fas fa-pen"></i>
+                                            </button>
+                                        @else
+                                            <button type="button" class="btn btn-outline-secondary btn-xs rounded-circle btn-edit"
+                                                data-id="new"
+                                                data-empleado="{{ $empleado->nombres }} {{ $empleado->apellidos }}"
+                                                data-fecha="{{ $fecha->format('d/m/Y') }}"
+                                                data-e1="" data-s1="" data-e2="" data-s2="" data-obs="">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        @endif
+                                    @else
+                                        <i class="fas fa-lock text-muted small" title="Día no editable"></i>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    @else
+                        <tr>
+                            <td colspan="10" class="py-5 text-muted">
+                                <i class="fas fa-user-clock fa-3x mb-3 d-block"></i>
+                                Seleccione un empleado y un rango de fechas para ver el reporte
+                            </td>
+                        </tr>
+                    @endif
                 </tbody>
             </table>
         </div>
     </div>
 </div>
 
-{{-- MODAL: REGULARIZACIÓN MANUAL --}}
+{{-- MODAL: REGULARIZACIÓN MANUAL CON TIPOS --}}
 <div class="modal fade" id="modalEditar" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <form id="formManual" method="POST">
             @csrf
             @method('PUT')
             <div class="modal-content shadow-lg border-0">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title font-weight-bold"><i class="fas fa-edit mr-2"></i>Edición Manual de Asistencia</h5>
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-edit mr-2"></i>Regularización de Asistencia</h5>
                     <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
                 </div>
                 <div class="modal-body">
@@ -225,32 +332,73 @@
                     </div>
                     
                     <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="text-sm font-weight-bold"><i class="fas fa-sign-in-alt text-success mr-1"></i> Entrada 1</label>
-                            <input type="time" name="entrada_1_real" id="in_e1" class="form-control border-primary" step="1">
+                        {{-- TURNO 1 --}}
+                        <div class="col-md-6 border-right">
+                            <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-3">Primer Turno</h6>
+                            <div class="form-group mb-3">
+                                <label class="text-xs font-weight-bold">Entrada 1</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="time" name="entrada_1_real" id="in_e1" class="form-control" step="1">
+                                    <select name="tipo_e1_id" id="sel_te1" class="form-control">
+                                        <option value="">-- Tipo --</option>
+                                        @foreach($tiposTickeo as $tipo)
+                                            <option value="{{ $tipo->id }}"> {{ $tipo->nombre }} </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label class="text-xs font-weight-bold">Salida 1</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="time" name="salida_1_real" id="in_s1" class="form-control" step="1">
+                                    <select name="tipo_s1_id" id="sel_ts1" class="form-control">
+                                        <option value="">-- Tipo --</option>
+                                        @foreach($tiposTickeo as $tipo)
+                                            <option value="{{ $tipo->id }}"> {{ $tipo->nombre }} </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-6 mb-3">
-                            <label class="text-sm font-weight-bold"><i class="fas fa-sign-out-alt text-danger mr-1"></i> Salida 1</label>
-                            <input type="time" name="salida_1_real" id="in_s1" class="form-control border-primary" step="1">
+
+                        {{-- TURNO 2 --}}
+                        <div class="col-md-6">
+                            <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-3">Segundo Turno</h6>
+                            <div class="form-group mb-3">
+                                <label class="text-xs font-weight-bold">Entrada 2</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="time" name="entrada_2_real" id="in_e2" class="form-control" step="1">
+                                    <select name="tipo_e2_id" id="sel_te2" class="form-control">
+                                        <option value="">-- Tipo --</option>
+                                        @foreach($tiposTickeo as $tipo)
+                                            <option value="{{ $tipo->id }}"> {{ $tipo->nombre }} </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group mb-3">
+                                <label class="text-xs font-weight-bold">Salida 2</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="time" name="salida_2_real" id="in_s2" class="form-control" step="1">
+                                    <select name="tipo_s2_id" id="sel_ts2" class="form-control">
+                                        <option value="">-- Tipo --</option>
+                                        @foreach($tiposTickeo as $tipo)
+                                            <option value="{{ $tipo->id }}"> {{ $tipo->nombre }} </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-6 mb-3">
-                            <label class="text-sm font-weight-bold"><i class="fas fa-sign-in-alt text-success mr-1"></i> Entrada 2</label>
-                            <input type="time" name="entrada_2_real" id="in_e2" class="form-control border-primary" step="1">
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="text-sm font-weight-bold"><i class="fas fa-sign-out-alt text-danger mr-1"></i> Salida 2</label>
-                            <input type="time" name="salida_2_real" id="in_s2" class="form-control border-primary" step="1">
-                        </div>
-                        <div class="col-12 mt-2">
-                            <label class="text-sm font-weight-bold text-orange">Observación / Justificación</label>
-                            <textarea name="observaciones" id="in_obs" class="form-control border-warning" rows="3" required placeholder="Describa el motivo del cambio manual..."></textarea>
-                            <small class="text-muted italic">* Este registro pasará a ser de origen MANUAL.</small>
+
+                        <div class="col-12 mt-3">
+                            <label class="text-sm font-weight-bold text-orange">Observación / Justificación Obligatoria</label>
+                            <textarea name="observaciones" id="in_obs" class="form-control border-warning" rows="2" required placeholder="Ej: Olvido de tickeo, Comisión de servicio..."></textarea>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light">
+                <div class="modal-footer bg-light p-2">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary btn-sm px-4 shadow-sm font-weight-bold">Actualizar Registro</button>
+                    <button type="submit" class="btn btn-primary btn-sm px-4 shadow-sm font-weight-bold">Guardar Cambios</button>
                 </div>
             </div>
         </form>
@@ -269,17 +417,18 @@
                 </div>
                 <div class="modal-body text-center">
                     <div class="alert alert-warning-soft mb-3 text-left">
-                        <i class="fas fa-exclamation-triangle mr-2"></i> <strong>Atención:</strong> Esta acción borrará los registros calculados actualmente en el rango seleccionado y los volverá a generar.
+                        <i class="fas fa-exclamation-triangle mr-2"></i> <strong>Atención:</strong> Se borrarán los cálculos actuales y se generarán de nuevo.
                     </div>
                     <div class="row">
                         <div class="col-6">
                             <label class="text-xs font-weight-bold">Desde:</label>
-                            <input type="date" name="fecha_desde" class="form-control form-control-sm border-warning" required>
+                            <input type="date" name="fecha_desde" value="{{ $fecha_desde->format('Y-m-d') }}" class="form-control form-control-sm border-warning" required>
                         </div>
                         <div class="col-6">
                             <label class="text-xs font-weight-bold">Hasta:</label>
-                            <input type="date" name="fecha_hasta" class="form-control form-control-sm border-warning" required>
+                            <input type="date" name="fecha_hasta" value="{{ $fecha_hasta->format('Y-m-d') }}" class="form-control form-control-sm border-warning" required>
                         </div>
+                        <input type="hidden" name="empleado_id" value="{{ request('empleado_id') }}">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -295,62 +444,64 @@
 
 @section('css')
 <style>
-    /* Colores personalizados */
-    .bg-gray-light { background-color: #f8f9fa; color: #6c757d; font-size: 0.75rem; }
-    .bg-primary-light { background-color: #eef2ff; color: #4e73df; font-size: 0.75rem; }
+    .bg-feriado { background-color: #fff1f0 !important; }
+    .bg-especial { background-color: #fffbe6 !important; }
+    .bg-light-danger { background-color: #fcf1f1 !important; }
+    .bg-weekend { background-color: #f0f7ff !important; }
     .badge-danger-soft { background-color: #fff1f0; color: #e74c3c; border: 1px solid #ffccc7; }
     .alert-warning-soft { background-color: #fffbe6; border: 1px solid #ffe58f; color: #856404; }
-    
-    /* Resaltar manual */
-    .row-manual { background-color: #fffaf0; }
-    .row-manual td:first-child { border-left: 3px solid #fd7e14; }
+    .table thead th { font-size: 0.7rem; text-transform: uppercase; background: #f8f9fa; }
+    .table td { font-size: 0.8rem; }
     .text-orange { color: #fd7e14 !important; }
-    
-    /* Estética de tabla */
-    .table thead th { vertical-align: middle; border-bottom-width: 0 !important; font-size: 0.75rem; text-transform: uppercase; }
-    .table td { font-size: 0.9rem; }
-    .text-blue { color: #007bff; }
-    
-    /* Botón Loading */
-    .btn-loading.loading { pointer-events: none; opacity: 0.8; }
-    .btn-loading.loading i { animation: spin 1s infinite linear; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-    /* Select2 */
-    .select2-container--bootstrap4 .select2-selection { border-color: #17a2b8 !important; height: calc(1.5em + 0.5rem + 2px) !important; font-size: 0.875rem !important; }
+    .btn-xs { padding: .125rem .25rem; font-size: .75rem; }
+    .select2-container--bootstrap4 .select2-selection { border-color: #17a2b8 !important; }
+    /* Estilo para campos solo lectura cuando hay tipo seleccionado */
+    .bg-read-only { background-color: #e9ecef !important; cursor: not-allowed; }
 </style>
 @stop
 
 @section('js')
 <script>
     $(document).ready(function() {
-        // Inicializar Tooltips y Select2
-        $('[data-toggle="tooltip"]').tooltip();
         if ($.fn.select2) {
-            $('.select2').select2({ theme: 'bootstrap4' });
+            $('.select2').select2({ theme: 'bootstrap4', width: '100%' });
         }
 
-        // Efecto loading en botones
-        $('.btn-loading').on('click', function() {
-            $(this).addClass('loading').html('<i class="fas fa-spinner mr-1"></i> Cargando...');
+        // Lógica: Si selecciona un "Tipo" (Comisión, etc), borra y bloquea la hora
+        $('select[id^="sel_t"]').on('change', function() {
+            let inputTime = $(this).siblings('input[type="time"]');
+            if ($(this).val() !== "") {
+                inputTime.val("").prop('readonly', true).addClass('bg-read-only');
+            } else {
+                inputTime.prop('readonly', false).removeClass('bg-read-only');
+            }
         });
 
-        // Delegación de eventos para el botón Editar
         $(document).on('click', '.btn-edit', function(e) {
             e.preventDefault();
             const btn = $(this);
+            const id = btn.data('id');
             
-            // Llenar info y campos
             $('#edit-info').text(btn.data('empleado') + ' | ' + btn.data('fecha'));
+            
+            // Cargar Horas
             $('#in_e1').val(btn.data('e1') || '');
             $('#in_s1').val(btn.data('s1') || '');
             $('#in_e2').val(btn.data('e2') || '');
             $('#in_s2').val(btn.data('s2') || '');
+            
+            // Cargar Tipos (Usando los IDs de los select)
+            $('#sel_te1').val(btn.data('te1') || "").trigger('change');
+            $('#sel_ts1').val(btn.data('ts1') || "").trigger('change');
+            $('#sel_te2').val(btn.data('te2') || "").trigger('change');
+            $('#sel_ts2').val(btn.data('ts2') || "").trigger('change');
+            
             $('#in_obs').val(btn.data('obs') || '');
 
-            let actionUrl = "{{ url('asistencias') }}/" + btn.data('id') + "/manual";
+            let actionUrl = (id === 'new') ? "{{ route('asistencias.procesar') }}" : "{{ url('asistencias') }}/" + id + "/manual";
             $('#formManual').attr('action', actionUrl);
-
+            $('#formManual').find('input[name="_method"]').val(id === 'new' ? 'POST' : 'PUT');
+            
             $('#modalEditar').modal('show');
         });
     });
