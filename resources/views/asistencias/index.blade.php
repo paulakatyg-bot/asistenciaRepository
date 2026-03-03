@@ -186,7 +186,6 @@
                                 </td>
 
                                 @if($asistencia && $asistencia->estado_dia !== 'FERIADO')
-                                    {{-- ENTRADA 1 --}}
                                     <td class="align-middle font-weight-bold">
                                         @if($asistencia->tipo_e1_id)
                                             <span class="badge badge-info" title="{{ $asistencia->tipoEntrada1->nombre ?? 'Manual' }}">
@@ -196,7 +195,6 @@
                                             {!! $asistencia->entrada_1_real ?: ($asistencia->entrada_1_prog ? '<span class="text-danger">S.T.</span>' : '-') !!}
                                         @endif
                                     </td>
-                                    {{-- SALIDA 1 --}}
                                     <td class="align-middle font-weight-bold border-right">
                                         @if($asistencia->tipo_s1_id)
                                             <span class="badge badge-info">
@@ -206,7 +204,6 @@
                                             {!! $asistencia->salida_1_real ?: ($asistencia->salida_1_prog ? '<span class="text-danger">S.T.</span>' : '-') !!}
                                         @endif
                                     </td>
-                                    {{-- ENTRADA 2 --}}
                                     <td class="align-middle font-weight-bold">
                                         @if($asistencia->tipo_e2_id)
                                             <span class="badge badge-info">
@@ -216,7 +213,6 @@
                                             {!! $asistencia->entrada_2_real ?: ($asistencia->entrada_2_prog ? '<span class="text-danger">S.T.</span>' : '-') !!}
                                         @endif
                                     </td>
-                                    {{-- SALIDA 2 --}}
                                     <td class="align-middle font-weight-bold border-right">
                                         @if($asistencia->tipo_s2_id)
                                             <span class="badge badge-info">
@@ -269,31 +265,22 @@
 
                                 <td class="align-middle">
                                     @if($tieneTurnoEseDia && !$esFeriado)
-                                        @if($asistencia)
-                                            <button type="button" class="btn btn-outline-primary btn-xs rounded-circle btn-edit" 
-                                                data-id="{{ $asistencia->id }}"
-                                                data-empleado="{{ $empleado->nombres }} {{ $empleado->apellidos }}"
-                                                data-fecha="{{ $fecha->format('d/m/Y') }}"
-                                                data-e1="{{ $asistencia->entrada_1_real }}"
-                                                data-s1="{{ $asistencia->salida_1_real }}"
-                                                data-e2="{{ $asistencia->entrada_2_real }}"
-                                                data-s2="{{ $asistencia->salida_2_real }}"
-                                                data-te1="{{ $asistencia->tipo_e1_id }}"
-                                                data-ts1="{{ $asistencia->tipo_s1_id }}"
-                                                data-te2="{{ $asistencia->tipo_e2_id }}"
-                                                data-ts2="{{ $asistencia->tipo_s2_id }}"
-                                                data-obs="{{ $asistencia->observaciones }}">
-                                                <i class="fas fa-pen"></i>
-                                            </button>
-                                        @else
-                                            <button type="button" class="btn btn-outline-secondary btn-xs rounded-circle btn-edit"
-                                                data-id="new"
-                                                data-empleado="{{ $empleado->nombres }} {{ $empleado->apellidos }}"
-                                                data-fecha="{{ $fecha->format('d/m/Y') }}"
-                                                data-e1="" data-s1="" data-e2="" data-s2="" data-obs="">
-                                                <i class="fas fa-plus"></i>
-                                            </button>
-                                        @endif
+                                        <button type="button" class="btn btn-outline-primary btn-xs rounded-circle btn-edit" 
+                                            data-id="{{ $asistencia ? $asistencia->id : 'new' }}"
+                                            data-empleado-id="{{ $empleado->id }}"
+                                            data-empleado="{{ $empleado->nombres }} {{ $empleado->apellidos }}"
+                                            data-fecha="{{ $fechaStr }}"
+                                            data-e1="{{ $asistencia->entrada_1_real ?? '' }}"
+                                            data-s1="{{ $asistencia->salida_1_real ?? '' }}"
+                                            data-e2="{{ $asistencia->entrada_2_real ?? '' }}"
+                                            data-s2="{{ $asistencia->salida_2_real ?? '' }}"
+                                            data-te1="{{ $asistencia->tipo_e1_id ?? '' }}"
+                                            data-ts1="{{ $asistencia->tipo_s1_id ?? '' }}"
+                                            data-te2="{{ $asistencia->tipo_e2_id ?? '' }}"
+                                            data-ts2="{{ $asistencia->tipo_s2_id ?? '' }}"
+                                            data-obs="{{ $asistencia->observaciones ?? '' }}">
+                                            <i class="fas {{ $asistencia ? 'fa-pen' : 'fa-plus' }}"></i>
+                                        </button>
                                     @else
                                         <i class="fas fa-lock text-muted small" title="Día no editable"></i>
                                     @endif
@@ -314,12 +301,17 @@
     </div>
 </div>
 
-{{-- MODAL: REGULARIZACIÓN MANUAL CON TIPOS --}}
+{{-- EL RESTO DE MODALES Y SCRIPTS SE MANTIENE IGUAL --}}
+
+{{-- MODAL: REGULARIZACIÓN MANUAL --}}
 <div class="modal fade" id="modalEditar" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
         <form id="formManual" method="POST">
             @csrf
-            @method('PUT')
+            <input type="hidden" name="_method" id="method_field" value="PUT">
+            <input type="hidden" name="empleado_id" id="in_empleado_id">
+            <input type="hidden" name="fecha" id="in_fecha">
+
             <div class="modal-content shadow-lg border-0">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title font-weight-bold"><i class="fas fa-edit mr-2"></i>Regularización de Asistencia</h5>
@@ -332,7 +324,6 @@
                     </div>
                     
                     <div class="row">
-                        {{-- TURNO 1 --}}
                         <div class="col-md-6 border-right">
                             <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-3">Primer Turno</h6>
                             <div class="form-group mb-3">
@@ -361,7 +352,6 @@
                             </div>
                         </div>
 
-                        {{-- TURNO 2 --}}
                         <div class="col-md-6">
                             <h6 class="font-weight-bold text-primary border-bottom pb-1 mb-3">Segundo Turno</h6>
                             <div class="form-group mb-3">
@@ -392,7 +382,7 @@
 
                         <div class="col-12 mt-3">
                             <label class="text-sm font-weight-bold text-orange">Observación / Justificación Obligatoria</label>
-                            <textarea name="observaciones" id="in_obs" class="form-control border-warning" rows="2" required placeholder="Ej: Olvido de tickeo, Comisión de servicio..."></textarea>
+                            <textarea name="observaciones" id="in_obs" class="form-control border-warning" rows="2" placeholder="Ej: Olvido de tickeo, Comisión de servicio..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -455,7 +445,6 @@
     .text-orange { color: #fd7e14 !important; }
     .btn-xs { padding: .125rem .25rem; font-size: .75rem; }
     .select2-container--bootstrap4 .select2-selection { border-color: #17a2b8 !important; }
-    /* Estilo para campos solo lectura cuando hay tipo seleccionado */
     .bg-read-only { background-color: #e9ecef !important; cursor: not-allowed; }
 </style>
 @stop
@@ -467,7 +456,6 @@
             $('.select2').select2({ theme: 'bootstrap4', width: '100%' });
         }
 
-        // Lógica: Si selecciona un "Tipo" (Comisión, etc), borra y bloquea la hora
         $('select[id^="sel_t"]').on('change', function() {
             let inputTime = $(this).siblings('input[type="time"]');
             if ($(this).val() !== "") {
@@ -483,14 +471,12 @@
             const id = btn.data('id');
             
             $('#edit-info').text(btn.data('empleado') + ' | ' + btn.data('fecha'));
+            $('#in_empleado_id').val(btn.data('empleado-id'));
+            $('#in_fecha').val(btn.data('fecha'));
+
+            $('#in_e1').val(btn.data('e1')); $('#in_s1').val(btn.data('s1'));
+            $('#in_e2').val(btn.data('e2')); $('#in_s2').val(btn.data('s2'));
             
-            // Cargar Horas
-            $('#in_e1').val(btn.data('e1') || '');
-            $('#in_s1').val(btn.data('s1') || '');
-            $('#in_e2').val(btn.data('e2') || '');
-            $('#in_s2').val(btn.data('s2') || '');
-            
-            // Cargar Tipos (Usando los IDs de los select)
             $('#sel_te1').val(btn.data('te1') || "").trigger('change');
             $('#sel_ts1').val(btn.data('ts1') || "").trigger('change');
             $('#sel_te2').val(btn.data('te2') || "").trigger('change');
@@ -498,9 +484,13 @@
             
             $('#in_obs').val(btn.data('obs') || '');
 
-            let actionUrl = (id === 'new') ? "{{ route('asistencias.procesar') }}" : "{{ url('asistencias') }}/" + id + "/manual";
+            // Lógica de URL: Si es "new", enviamos 0 al controlador para que el controlador lo trate como creación
+            let actionUrl = (id === 'new') 
+                ? "{{ url('asistencias/0/manual') }}" 
+                : "{{ url('asistencias') }}/" + id + "/manual";
+                
             $('#formManual').attr('action', actionUrl);
-            $('#formManual').find('input[name="_method"]').val(id === 'new' ? 'POST' : 'PUT');
+            $('#method_field').val('PUT'); 
             
             $('#modalEditar').modal('show');
         });

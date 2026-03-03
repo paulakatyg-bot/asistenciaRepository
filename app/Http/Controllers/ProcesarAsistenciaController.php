@@ -134,47 +134,85 @@ class ProcesarAsistenciaController extends Controller
         return back()->with('success', 'Procesamiento finalizado con éxito.');
     }
 
-    public function actualizacionManual(Request $request, $id)
+    public function actualizacionManual(Request $request, $id = null)
     {
-        $asistencia = AsistenciaDiaria::findOrFail($id);
-        $empleado = Empleado::with('grupoBeneficio')->find($asistencia->empleado_id);
-        
+        // 1. DETERMINAR LA ASISTENCIA (Implementación de firstOrNew)
+        // Validamos primero que tengamos lo mínimo necesario
         $request->validate([
-            'observaciones' => 'required|min:5'
+            'empleado_id' => 'required',
+            'fecha' => 'required|date',
+            'observaciones' => 'nullable|string|max:500',
         ]);
 
-        // 1. Obtener turnos para recalcular
+        $empleadoId = $request->empleado_id;
+        $fechaInput = Carbon::parse($request->fecha);
+        $fechaStr = $fechaInput->format('Y-m-d');
+
+        // Si el ID es numérico y mayor a 0, intentamos buscarlo, 
+        // de lo contrario usamos firstOrNew con los datos del request.
+        if (is_numeric($id) && $id > 0) {
+            $asistencia = AsistenciaDiaria::findOrFail($id);
+        } else {
+            $asistencia = AsistenciaDiaria::firstOrNew([
+                'empleado_id' => $empleadoId,
+                'fecha' => $fechaStr
+            ]);
+        }
+
+        $empleado = Empleado::with('grupoBeneficio')->findOrFail($empleadoId);
+
+        // 2. Obtener turnos para el cálculo (Importante para obtener las horas programadas)
         $asignacion = AsignacionHorario::where('empleado_id', $empleado->id)
-            ->where('fecha_inicio', '<=', $asistencia->fecha->format('Y-m-d'))
-            ->where(fn($q) => $q->whereNull('fecha_fin')->orWhere('fecha_fin', '>=', $asistencia->fecha->format('Y-m-d')))
+            ->where('fecha_inicio', '<=', $fechaStr)
+            ->where(function($q) use ($fechaStr) {
+                $q->whereNull('fecha_fin')->orWhere('fecha_fin', '>=', $fechaStr);
+            })
             ->first();
 
-        if (!$asignacion) return back()->with('error', 'Sin horario asignado.');
-        $turnos = $asignacion->horario->turnos()->where('dia_semana', $asistencia->fecha->dayOfWeekIso)->get();
+        if (!$asignacion) {
+            return back()->with('error', 'El empleado no tiene horario asignado para esta fecha.');
+        }
+        
+        $turnos = $asignacion->horario->turnos()
+            ->where('dia_semana', $fechaInput->dayOfWeekIso)
+            ->get();
 
-        // 2. CORRECCIÓN: Nombres de variables coincidentes con el HTML (tipo_e1_id, etc.)
-        // Si hay un tipo seleccionado, usamos la hora programada para anular el atraso.
-        $marcacionesNuevas = [
-            'entrada_1_real' => $request->tipo_e1_id ? $asistencia->entrada_1_prog : $request->entrada_1_real,
-            'salida_1_real'  => $request->tipo_s1_id ? $asistencia->salida_1_prog : $request->salida_1_real,
-            'entrada_2_real' => $request->tipo_e2_id ? $asistencia->entrada_2_prog : $request->entrada_2_real,
-            'salida_2_real'  => $request->tipo_s2_id ? $asistencia->salida_2_prog : $request->salida_2_real,
-        ];
+        // 3. Lógica de procesamiento de inputs
+        $datosProcesados = [];
+        foreach([1, 2] as $n) {
+            $turno = $turnos->where('numero_turno', $n)->first();
+            $hProgE = $turno ? $turno->hora_inicio : null;
+            $hProgS = $turno ? $turno->hora_fin : null;
 
-        // 3. Recalcular estado y minutos tarde
-        $analisis = $this->calcularAsistencia($empleado, $asistencia->fecha, $turnos, $marcacionesNuevas);
+            $datosProcesados["entrada_{$n}_prog"] = $hProgE;
+            $datosProcesados["salida_{$n}_prog"] = $hProgS;
+            
+            // Si el usuario marcó un Tipo de Tickeo (Ej: Comisión), usamos la hora programada automáticamente
+            // Si no marcó tipo, usamos el valor manual que escribió en el input de tiempo
+            $datosProcesados["entrada_{$n}_real"] = $request->{"tipo_e{$n}_id"} ? $hProgE : $request->{"entrada_{$n}_real"};
+            $datosProcesados["salida_{$n}_real"]  = $request->{"tipo_s{$n}_id"} ? $hProgS : $request->{"salida_{$n}_real"};
+        }
 
-        // 4. CORRECCIÓN: Guardar con los nombres de columna correctos de tu BD
-        $asistencia->update(array_merge($analisis, [
-            'tipo_e1_id'    => $request->tipo_e1_id,
-            'tipo_s1_id'    => $request->tipo_s1_id,
-            'tipo_e2_id'    => $request->tipo_e2_id,
-            'tipo_s2_id'    => $request->tipo_s2_id,
-            'observaciones' => $request->observaciones,
-            'tipo_registro' => 'MANUAL'
+        // 4. Recalcular Estado (Normal, Tarde, Inasistencia) y Minutos Tarde
+        $analisis = $this->calcularAsistencia($empleado, $fechaInput, $turnos, $datosProcesados);
+
+        // 5. Asignar datos y Guardar
+        $asistencia->fill(array_merge($analisis, [
+            'entrada_1_real' => $datosProcesados['entrada_1_real'],
+            'salida_1_real'  => $datosProcesados['salida_1_real'],
+            'entrada_2_real' => $datosProcesados['entrada_2_real'],
+            'salida_2_real'  => $datosProcesados['salida_2_real'],
+            'tipo_e1_id'     => $request->tipo_e1_id,
+            'tipo_s1_id'     => $request->tipo_s1_id,
+            'tipo_e2_id'     => $request->tipo_e2_id,
+            'tipo_s2_id'     => $request->tipo_s2_id,
+            'observaciones'  => $request->observaciones,
+            'tipo_registro'  => 'MANUAL'
         ]));
+        
+        $asistencia->save();
 
-        return back()->with('success', 'Registro regularizado correctamente.');
+        return back()->with('success', 'Registro de asistencia actualizado correctamente.');
     }
 
     public function reprocesar(Request $request)
@@ -270,20 +308,36 @@ class ProcesarAsistenciaController extends Controller
         }
         return $reales;
     }
-
     public function exportarPdf(Request $request)
     {
         $desde = $request->fecha_desde;
         $hasta = $request->fecha_hasta;
         $empId = $request->empleado_id;
 
-        $query = AsistenciaDiaria::with('empleado')->whereBetween('fecha', [$desde, $hasta]);
-        if ($empId) $query->where('empleado_id', $empId);
+        if (!$empId) {
+            return back()->with('error', 'Seleccione un empleado para generar el reporte PDF.');
+        }
 
-        $asistencias = $query->orderBy('fecha', 'asc')->get();
-        $empleado = $empId ? Empleado::find($empId) : null;
+        $empleado = Empleado::with(['asignacionesHorarios.horario.turnos'])->findOrFail($empId);
+        
+        // Generar el rango de fechas completo
+        $periodo = \Carbon\CarbonPeriod::create($desde, $hasta);
 
-        return Pdf::loadView('asistencias.pdf', compact('asistencias', 'desde', 'hasta', 'empleado'))
-            ->setPaper('a4', 'portrait')->download("Asistencia_{$desde}_al_{$hasta}.pdf");
+        // Obtener asistencias registradas
+        $asistenciasReales = AsistenciaDiaria::where('empleado_id', $empId)
+            ->whereBetween('fecha', [$desde, $hasta])
+            ->get()
+            ->keyBy(fn($item) => $item->fecha->format('Y-m-d'));
+
+        // Obtener feriados/eventos
+        $eventos = Calendario::whereBetween('fecha', [$desde, $hasta])
+            ->get()
+            ->keyBy(fn($item) => $item->fecha->format('Y-m-d'));
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('asistencias.pdf', compact(
+            'empleado', 'periodo', 'asistenciasReales', 'eventos', 'desde', 'hasta'
+        ));
+
+        return $pdf->setPaper('a4', 'portrait')->stream("Asistencia_{$empleado->apellidos}.pdf");
     }
 }
