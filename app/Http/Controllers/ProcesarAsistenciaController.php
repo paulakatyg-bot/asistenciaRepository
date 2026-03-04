@@ -62,20 +62,27 @@ class ProcesarAsistenciaController extends Controller
         ]);
     }
 
-    public function procesar()
+    public function procesar($empleadoId = null) // Añadimos el parámetro opcional
     {
-        $marcaciones = MarcacionCruda::where('procesado', 0)
-            ->orderBy('fecha_hora')
-            ->get();
+        $query = MarcacionCruda::where('procesado', 0)->orderBy('fecha_hora');
+
+        // Si se pasó un ID, filtramos la búsqueda
+        if ($empleadoId) {
+            $query->where('empleado_id', $empleadoId);
+        }
+
+        $marcaciones = $query->get();
 
         if ($marcaciones->isEmpty()) {
-            return back()->with('success', 'No hay marcaciones pendientes');
+            return back()->with('info', 'No hay marcaciones nuevas para procesar.');
         }
 
         $grupos = $marcaciones->groupBy(fn($item) => $item->empleado_id . '-' . $item->fecha_hora->format('Y-m-d'));
 
         foreach ($grupos as $grupo) {
             $primerMarca = $grupo->first();
+            
+            // Optimización: Eager loading para evitar el problema N+1
             $empleado = Empleado::with('grupoBeneficio')->find($primerMarca->empleado_id);
             if (!$empleado) continue;
 
@@ -118,7 +125,6 @@ class ProcesarAsistenciaController extends Controller
             // 4. CALCULAR ASISTENCIA
             $analisis = $this->calcularAsistencia($empleado, $fechaCarbon, $turnos, $reales);
             
-            // Si es un día ESPECIAL (pero no feriado), anotamos en observaciones
             if ($diaCalendario && $diaCalendario->tipo_dia === 'ESPECIAL') {
                 $analisis['observaciones'] = 'Especial: ' . $diaCalendario->descripcion;
             }
@@ -220,22 +226,32 @@ class ProcesarAsistenciaController extends Controller
         $request->validate([
             'fecha_desde' => 'required|date',
             'fecha_hasta' => 'required|date|after_or_equal:fecha_desde',
+            'empleado_id' => 'nullable|exists:empleados,id'
         ]);
 
         $fechaDesde = Carbon::parse($request->fecha_desde)->startOfDay();
         $fechaHasta = Carbon::parse($request->fecha_hasta)->endOfDay();
-        
-        // Marcar como no procesadas las marcaciones del rango
-        MarcacionCruda::whereBetween('fecha_hora', [$fechaDesde, $fechaHasta])->update(['procesado' => 0]);
-        
-        // Eliminar registros de asistencia para forzar recalculo
-        $queryAsistencia = AsistenciaDiaria::whereBetween('fecha', [$fechaDesde->format('Y-m-d'), $fechaHasta->format('Y-m-d')]);
-        if ($request->filled('empleado_id')) {
-            $queryAsistencia->where('empleado_id', $request->empleado_id);
+        $empleadoId = $request->input('empleado_id');
+
+        // 1. Resetear Marcaciones Crudas (Filtrado por empleado si existe)
+        $queryMarcaciones = MarcacionCruda::whereBetween('fecha_hora', [$fechaDesde, $fechaHasta]);
+        if ($empleadoId) {
+            $queryMarcaciones->where('empleado_id', $empleadoId);
+        }
+        $queryMarcaciones->update(['procesado' => 0]);
+
+        // 2. Eliminar Asistencias calculadas (Filtrado por empleado si existe)
+        $queryAsistencia = AsistenciaDiaria::whereBetween('fecha', [
+            $fechaDesde->format('Y-m-d'), 
+            $fechaHasta->format('Y-m-d')
+        ]);
+        if ($empleadoId) {
+            $queryAsistencia->where('empleado_id', $empleadoId);
         }
         $queryAsistencia->delete();
 
-        return $this->procesar();
+        // 3. Llamar al método procesar pasando el ID (o null si es para todos)
+        return $this->procesar($empleadoId); 
     }
 
     private function calcularAsistencia($empleado, $fechaCarbon, $turnos, $reales)

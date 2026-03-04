@@ -40,6 +40,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('horario_turno');
+        Schema::dropIfExists('horario_turnos');
     }
 };

@@ -418,7 +418,22 @@
                             <label class="text-xs font-weight-bold">Hasta:</label>
                             <input type="date" name="fecha_hasta" value="{{ $fecha_hasta->format('Y-m-d') }}" class="form-control form-control-sm border-warning" required>
                         </div>
-                        <input type="hidden" name="empleado_id" value="{{ request('empleado_id') }}">
+                        <div class="col-12 mt-3">
+                           <div class="row">
+                                <div class="col-12 mb-3 text-left">
+                                    <label class="text-xs font-weight-bold">Empleado (Opcional):</label>
+                                    <select name="empleado_id" id="select-reprocesar" class="form-control select2">
+                                        <option value="">-- TODOS LOS EMPLEADOS --</option>
+                                        @foreach($empleados as $emp)
+                                            <option value="{{ $emp->id }}" {{ request('empleado_id') == $emp->id ? 'selected' : '' }}>
+                                                {{ $emp->nombres }} {{ $emp->apellidos }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">Si no seleccionas ninguno, se reprocesará todo el personal.</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
