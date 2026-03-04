@@ -471,6 +471,15 @@
             $('.select2').select2({ theme: 'bootstrap4', width: '100%' });
         }
 
+        $('#modalReprocesar').on('shown.bs.modal', function () {
+            $('#select-reprocesar').select2({
+                theme: 'bootstrap4',
+                width: '100%',
+                placeholder: '-- TODOS LOS EMPLEADOS --',
+                allowClear: true,
+                dropdownParent: $('#modalReprocesar') // Esto evita que el select quede detrás o bloqueado
+            });
+        });
         $('select[id^="sel_t"]').on('change', function() {
             let inputTime = $(this).siblings('input[type="time"]');
             if ($(this).val() !== "") {
