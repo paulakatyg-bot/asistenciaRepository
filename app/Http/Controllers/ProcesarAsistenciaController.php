@@ -91,7 +91,7 @@ class ProcesarAsistenciaController extends Controller
                         'estado_dia' => 'FERIADO',
                         'minutos_tarde' => 0,
                         'observaciones' => 'Feriado: ' . $diaCalendario->descripcion,
-                        'tipo_registro' => 'SISTEMA'
+                        'tipo_registro' => 'MAQUINA'
                     ]
                 );
                 $grupo->each->update(['procesado' => 1]);
