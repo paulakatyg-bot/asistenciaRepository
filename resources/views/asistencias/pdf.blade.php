@@ -48,7 +48,7 @@
                 </td>
                 <td style="text-align: right; border: none; width: 40%;">
                     <p><strong>Periodo:</strong> {{ \Carbon\Carbon::parse($desde)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($hasta)->format('d/m/Y') }}</p>
-                    <p><strong>Fecha Emisión:</strong> {{ now()->format('d/m/Y H:i') }}</p>
+                    <!--<p><strong>Fecha Emisión:</strong> {{ now()->format('d/m/Y H:i') }}</p>-->
                 </td>
             </tr>
         </table>
@@ -200,9 +200,9 @@
     </div>
 
     <div style="clear: both;"></div>
-
-    <div class="footer-firmas">
-        <div class="firma-box">Firma del Empleado<br>C.I.: __________________</div>
+    
+    <!--<div class="footer-firmas">
+        <div class="firma-box">Firma del Empleado<br>C.I.: __________________</div>-->
         <div class="spacer"></div>
         <div class="firma-box">Responsable de RRHH<br>Sello y Firma</div>
     </div>
